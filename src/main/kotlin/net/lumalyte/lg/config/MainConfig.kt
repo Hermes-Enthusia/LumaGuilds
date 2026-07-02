@@ -472,7 +472,18 @@ data class NameFilterConfig(
         "\\bh[i1]tl[3e]r",
         "\\bn[a@4][z\\$][i1]",
         "\\bp[3e]d[0o]",
-        "\\br[a@4]p[3e]"
+        "\\br[a@4]p[3e]",
+        "\\bj[3e]w",
+        "\\b[i1][s\\$]r[a@4][3e]l",
+        "\\bp[a@4]l[3e][s\\$]t[i1]n[3e]",
+        "\\bh[a@4]m[a@4][s\\$]",
+        "\\b[i1]nt[i1]f[a@4]d[a@4]",
+        "\\bz[i1][0o]n[i1][s\\$]t",
+        "\\bh[3e]zb[0o]ll[a@4]h",
+        "\\bp[uü]t[i1]n",
+        "\\br[uü][s\\$][s\\$][i1][a@4]",
+        "\\b[a@4]p[a@4]rth[3e][i1]d",
+        "\\bg[3e]n[0o]c[i1]d[3e]"
     ),
     var normalization: NameFilterNormalization = NameFilterNormalization()
 )
