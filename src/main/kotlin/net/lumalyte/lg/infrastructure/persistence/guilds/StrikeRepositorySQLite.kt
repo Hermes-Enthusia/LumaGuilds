@@ -87,7 +87,7 @@ class StrikeRepositorySQLite(
         val sql = "SELECT COUNT(*) AS cnt FROM guild_strikes WHERE guild_id = ?"
         return try {
             val results = storage.connection.getResults(sql, guildId.toString())
-            results.firstOrNull()?.getInt("cnt") ?: 0
+            results.firstOrNull()?.numInt("cnt") ?: 0
         } catch (e: SQLException) {
             logger.error("Failed to count strikes for guild {}", guildId, e)
             0
@@ -98,7 +98,7 @@ class StrikeRepositorySQLite(
         val sql = "SELECT COUNT(*) AS cnt FROM guild_strikes WHERE guild_id = ? AND active = 1"
         return try {
             val results = storage.connection.getResults(sql, guildId.toString())
-            results.firstOrNull()?.getInt("cnt") ?: 0
+            results.firstOrNull()?.numInt("cnt") ?: 0
         } catch (e: SQLException) {
             logger.error("Failed to count active strikes for guild {}", guildId, e)
             0
@@ -131,7 +131,7 @@ class StrikeRepositorySQLite(
         return try {
             storage.connection.getResults(sql).mapNotNull { row ->
                 val guildId = runCatching { UUID.fromString(row.getString("guild_id")) }.getOrNull() ?: return@mapNotNull null
-                guildId to row.getInt("cnt")
+                guildId to (row.numInt("cnt") ?: 0)
             }.toMap()
         } catch (e: SQLException) {
             logger.error("Failed to load all strike counts", e)
@@ -150,7 +150,7 @@ class StrikeRepositorySQLite(
         return try {
             storage.connection.getResults(sql).mapNotNull { row ->
                 val guildId = runCatching { UUID.fromString(row.getString("guild_id")) }.getOrNull() ?: return@mapNotNull null
-                guildId to row.getInt("cnt")
+                guildId to (row.numInt("cnt") ?: 0)
             }.toMap()
         } catch (e: SQLException) {
             logger.error("Failed to load all active strike counts", e)
@@ -161,7 +161,7 @@ class StrikeRepositorySQLite(
     override fun countAll(): Int {
         val sql = "SELECT COUNT(*) AS cnt FROM guild_strikes"
         return try {
-            storage.connection.getResults(sql).firstOrNull()?.getInt("cnt") ?: 0
+            storage.connection.getResults(sql).firstOrNull()?.numInt("cnt") ?: 0
         } catch (e: SQLException) {
             logger.error("Failed to count all strikes", e)
             0
@@ -181,20 +181,33 @@ class StrikeRepositorySQLite(
     private fun co.aikar.idb.DbRow.toStrike(): GuildStrike? {
         return runCatching {
             GuildStrike(
-                id = getLong("id") ?: 0L,
+                id = numLong("id") ?: 0L,
                 guildId = UUID.fromString(getString("guild_id")),
                 playerUuid = UUID.fromString(getString("player_uuid")),
                 playerName = getString("player_name"),
                 punishmentType = getString("punishment_type"),
                 reason = getString("reason"),
                 executorName = getString("executor_name"),
-                issuedAt = Instant.ofEpochMilli(getLong("issued_at") ?: 0L),
-                litebansEntryId = getLong("litebans_entry_id"),
-                active = (getInt("active") ?: 1) == 1
+                issuedAt = Instant.ofEpochMilli(numLong("issued_at") ?: 0L),
+                litebansEntryId = numLong("litebans_entry_id"),
+                active = (numInt("active") ?: 1) == 1
             )
         }.getOrElse { e ->
             logger.warn("Skipping malformed strike row: {}", e.message)
             null
         }
     }
+
+    /**
+     * Number-safe column reads. idb's `DbRow.getLong()`/`getInt()` hard-cast the
+     * raw driver value (`(Long) value`), which throws ClassCastException on
+     * SQLite (returns Integer for INTEGER columns) and on MariaDB (returns Long
+     * for BIGINT/COUNT(*) columns). These helpers convert through `Number` so
+     * both backends work.
+     */
+    private fun co.aikar.idb.DbRow.numLong(column: String): Long? =
+        (get(column) as? Number)?.toLong()
+
+    private fun co.aikar.idb.DbRow.numInt(column: String): Int? =
+        (get(column) as? Number)?.toInt()
 }
